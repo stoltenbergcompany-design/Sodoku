@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#090a0d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Sudoku">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <title>Sudoku</title>
+  <style>
+    :root{--bg:#08090b;--glass:rgba(255,255,255,.075);--glass2:rgba(255,255,255,.11);--line:rgba(255,255,255,.10);--text:#f5f5f7;--muted:#9a9ba3;--accent:#8ab4ff;--bad:#ff5f57;--good:#32d74b}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    body{margin:0;min-height:100svh;background:radial-gradient(circle at 50% -10%,#20242d 0,#0d0f13 38%,var(--bg) 75%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;display:flex;justify-content:center;overflow-x:hidden}
+    button{font:inherit;color:inherit;border:0;cursor:pointer}
+    .app{width:min(100%,520px);padding:calc(18px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));}
+    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+    h1{font-size:30px;letter-spacing:-1.4px;margin:0;font-weight:700}
+    .timer{font-variant-numeric:tabular-nums;color:var(--muted);font-size:15px}
+    .glass{background:linear-gradient(145deg,rgba(255,255,255,.095),rgba(255,255,255,.045));border:1px solid var(--line);box-shadow:0 20px 60px rgba(0,0,0,.28),inset 0 1px rgba(255,255,255,.05);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px)}
+    .top{padding:10px;border-radius:22px;margin-bottom:14px}
+    .seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+    .seg button{background:transparent;padding:10px;border-radius:14px;color:var(--muted);transition:.22s ease}
+    .seg button.active{background:var(--glass2);color:var(--text);box-shadow:0 5px 18px rgba(0,0,0,.2)}
+    .board-wrap{padding:10px;border-radius:25px}
+    .board{display:grid;grid-template-columns:repeat(9,1fr);aspect-ratio:1;border-radius:17px;overflow:hidden;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.1)}
+    .cell{position:relative;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.018);font-size:clamp(19px,6.3vw,30px);font-weight:500;transition:background .18s,transform .12s,color .18s;user-select:none}
+    .cell:nth-child(3n){border-right:1px solid rgba(255,255,255,.18)}
+    .cell:nth-child(9n){border-right:0}
+    .cell:nth-child(n+19):nth-child(-n+27),.cell:nth-child(n+46):nth-child(-n+54){border-bottom:1px solid rgba(255,255,255,.18)}
+    .cell{border-right:1px solid rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06)}
+    .cell.given{font-weight:700}
+    .cell.related{background:rgba(138,180,255,.08)}
+    .cell.same{background:rgba(138,180,255,.18);color:#bcd6ff}
+    .cell.selected{background:rgba(138,180,255,.30);box-shadow:inset 0 0 0 1px rgba(170,205,255,.35)}
+    .cell.error{color:var(--bad);animation:shake .28s ease}
+    @keyframes shake{25%{transform:translateX(-4px)}50%{transform:translateX(4px)}75%{transform:translateX(-2px)}}
+    .stats{display:flex;justify-content:space-between;padding:12px 3px 4px;color:var(--muted);font-size:13px}
+    .pad{margin-top:14px;padding:12px;border-radius:24px}
+    .keys{display:grid;grid-template-columns:repeat(9,1fr);gap:6px}
+    .key{min-height:48px;border-radius:15px;background:rgba(255,255,255,.07);transition:transform .12s,background .18s}
+    .key:active,.action:active,.seg button:active{transform:scale(.94)}
+    .key:disabled{opacity:.28}
+    .actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}
+    .action{padding:12px 8px;border-radius:15px;background:rgba(255,255,255,.055);color:var(--muted);transition:.18s}
+    .action.primary{background:rgba(138,180,255,.15);color:#c8dcff}
+    .message{height:22px;text-align:center;margin-top:10px;font-size:13px;color:var(--muted);transition:.2s}
+    .message.good{color:var(--good)}
+    @media (min-width:600px){.app{padding-top:35px}.key{min-height:52px}}
+    @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  </style>
+</head>
+<body>
+<main class="app">
+  <header><h1>Sudoku</h1><div class="timer" id="timer">00:00</div></header>
+
+  <section class="glass top">
+    <div class="seg">
+      <button data-level="easy" class="active">Easy</button>
+      <button data-level="medium">Medium</button>
+      <button data-level="hard">Hard</button>
+    </div>
+  </section>
+
+  <section class="glass board-wrap"><div class="board" id="board"></div></section>
+  <div class="stats"><span id="mistakes">0 Fehler</span><span id="progress">0 / 81</span></div>
+
+  <section class="glass pad">
+    <div class="keys" id="keys"></div>
+    <div class="actions">
+      <button class="action" id="erase">Löschen</button>
+      <button class="action" id="check">Prüfen</button>
+      <button class="action primary" id="new">Neues Spiel</button>
+    </div>
+  </section>
+  <div class="message" id="message"></div>
+</main>
+
+<script>
+const levels={easy:38,medium:48,hard:55};
+let puzzle=[], solution=[], board=[], selected=-1, mistakes=0, seconds=0, timerId=null, level="easy";
+
+const boardEl=document.querySelector("#board"), keysEl=document.querySelector("#keys");
+const timerEl=document.querySelector("#timer"), mistakesEl=document.querySelector("#mistakes");
+const progressEl=document.querySelector("#progress"), messageEl=document.querySelector("#message");
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function valid(g,r,c,n){for(let i=0;i<9;i++)if(g[r][i]===n||g[i][c]===n)return false;let br=Math.floor(r/3)*3,bc=Math.floor(c/3)*3;for(let y=br;y<br+3;y++)for(let x=bc;x<bc+3;x++)if(g[y][x]===n)return false;return true}
+function solve(g){
+  for(let r=0;r<9;r++)for(let c=0;c<9;c++)if(!g[r][c]){
+    for(const n of shuffle([1,2,3,4,5,6,7,8,9]))if(valid(g,r,c,n)){g[r][c]=n;if(solve(g))return true;g[r][c]=0}return false
+  }return true
+}
+function makeGame(){
+  let g=Array.from({length:9},()=>Array(9).fill(0));solve(g);
+  solution=g.flat(); puzzle=solution.slice();
+  let remove=levels[level];let idx=shuffle([...Array(81).keys()]);
+  for(let i=0;i<remove;i++)puzzle[idx[i]]=0;
+  board=puzzle.slice();mistakes=0;seconds=0;selected=-1;
+  localStorage.removeItem("sudoku-save"); startTimer(); render(); msg("");
+}
+function startTimer(){clearInterval(timerId);timerId=setInterval(()=>{seconds++;timerEl.textContent=fmt(seconds);save()},1000)}
+function fmt(s){return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")}
+function save(){localStorage.setItem("sudoku-save",JSON.stringify({puzzle,solution,board,mistakes,seconds,level}))}
+function load(){try{let x=JSON.parse(localStorage.getItem("sudoku-save"));if(!x)return false;({puzzle,solution,board,mistakes,seconds,level}=x);document.querySelectorAll(".seg button").forEach(b=>b.classList.toggle("active",b.dataset.level===level));startTimer();render();return true}catch{return false}}
+function render(){
+  boardEl.innerHTML="";
+  for(let i=0;i<81;i++){let d=document.createElement("button");d.className="cell";d.textContent=board[i]||"";d.dataset.i=i;
+    if(puzzle[i])d.classList.add("given");
+    d.onclick=()=>select(i);boardEl.appendChild(d)}
+  update();
+}
+function select(i){selected=i;document.querySelectorAll(".cell").forEach((d,j)=>{d.classList.remove("selected","related","same");let r=Math.floor(j/9),c=j%9,sr=Math.floor(i/9),sc=i%9;if(r===sr||c===sc||Math.floor(r/3)===Math.floor(sr/3)&&Math.floor(c/3)===Math.floor(sc/3))d.classList.add("related");if(board[i]&&board[j]===board[i])d.classList.add("same");});boardEl.children[i]?.classList.add("selected")}
+function input(n){
+  if(selected<0||puzzle[selected])return;
+  if(n===0){board[selected]=0;render();select(selected);save();return}
+  board[selected]=n;
+  let cell=boardEl.children[selected];
+  if(n!==solution[selected]){mistakes++;cell.classList.add("error");setTimeout(()=>cell.classList.remove("error"),300)}
+  render();select(selected);save();checkWin();
+}
+function update(){mistakesEl.textContent=`${mistakes} ${mistakes===1?"Fehler":"Fehler"}`;progressEl.textContent=`${board.filter(Boolean).length} / 81`;timerEl.textContent=fmt(seconds)}
+function checkWin(){if(board.every((v,i)=>v===solution[i])){clearInterval(timerId);msg("Perfekt — Puzzle gelöst!","good")}}
+function msg(t,kind=""){messageEl.textContent=t;messageEl.className="message "+kind}
+for(let n=1;n<=9;n++){let b=document.createElement("button");b.className="key";b.textContent=n;b.onclick=()=>input(n);keysEl.appendChild(b)}
+document.querySelector("#erase").onclick=()=>input(0);
+document.querySelector("#check").onclick=()=>{if(board.every((v,i)=>!v||v===solution[i]))msg("Sieht gut aus ✓","good");else msg("Einige Zahlen sind noch falsch.")};
+document.querySelector("#new").onclick=makeGame;
+document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{level=b.dataset.level;document.querySelectorAll(".seg button").forEach(x=>x.classList.remove("active"));b.classList.add("active");makeGame()});
+document.addEventListener("keydown",e=>{if(e.key>="1"&&e.key<="9")input(+e.key);if(e.key==="Backspace"||e.key==="Delete")input(0)});
+if(!load())makeGame();
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js");
+</script>
+</body>
+</html>
