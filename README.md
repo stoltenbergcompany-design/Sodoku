@@ -1,16 +1,19 @@
-# Sudoku PWA
+# Sudoku PWA — iPhone Edition
 
-Eine mobile Sudoku-Web-App im minimalistischen Apple-/Glass-Look.
+Monochromer Apple-/Glass-Look mit einer einzigen dezenten Akzentfarbe.
 
-## Auf dem Handy installieren
+Enthalten:
+- iPhone Safe-Area / Notch-Unterstützung
+- schwarzer Fullscreen-Hintergrund
+- stärkerer Glassmorphism
+- Easy / Medium / Hard
+- Timer und lokaler Spielstand
+- Offline-Unterstützung
+- PWA Home-Screen-Installation
 
-1. Lade den Ordner auf einen Webhost hoch, der HTTPS unterstützt.
-2. Öffne die Website auf dem Handy.
-3. iPhone: Safari → Teilen → „Zum Home-Bildschirm“.
-4. Android: Chrome → Menü → „Zum Startbildschirm hinzufügen“ bzw. „App installieren“.
-
-## Kostenlos hosten
-
-Geeignet sind z. B. GitHub Pages, Netlify, Vercel oder Cloudflare Pages.
-
-Die App benötigt keine Datenbank. Spielstände werden lokal im Browser gespeichert.
+Für GitHub Pages:
+1. Dateien in dein Repository hochladen.
+2. Settings → Pages.
+3. Deploy from a branch → `main` → `/ (root)`.
+4. Save.
+5. Die erzeugte GitHub-Pages-Adresse auf dem iPhone in Safari öffnen.
